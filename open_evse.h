@@ -20,6 +20,8 @@
  * Boston, MA 02111-1307, USA.
  */
 
+// a change to the stable branch made by RHP
+
 
 #define OPEN_EVSE
 
