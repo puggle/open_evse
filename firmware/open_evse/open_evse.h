@@ -19,11 +19,21 @@
  * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
  * Boston, MA 02111-1307, USA.
  */
+#pragma once
+#define OPEN_EVSE
 
 // a change to the stable branch made by RHP
 
+=======
+// RHP branch version
+// for nz need to setup a few defaults differently like Vac 230   for both l1 and l2
+// **** Note open_evse.cpp I added to git - contains my changes
+// open_evse.ino is already in git but im not changing that so is sort of original copy
+#define NZ
 
-#define OPEN_EVSE
+
+//RHP options
+//#define MULTI_BTNS      // multiple buttons for select, next, prev instead of just one.
 
 #include <avr/wdt.h>
 #include <avr/pgmspace.h>
@@ -32,13 +42,22 @@
 #include "./Wire.h"
 #include "./Time.h"
 #include "avrstuff.h"
+#include "i2caddr.h"
+
 #if defined(ARDUINO) && (ARDUINO >= 100)
 #include "Arduino.h"
 #else
 #include "WProgram.h" // shouldn't need this but arduino sometimes messes up and puts inside an #ifdef
 #endif // ARDUINO
 
-#define VERSION "3.10.4"
+#define VERSION "D4.3.3"
+
+#include "Language_default.h"   //Default language should always be included as bottom layer
+
+//Language preferences: Add your custom languagefile here. See Language_default.h for more info.
+//#include "Language_norwegian.h"
+
+//#define NOCHECKS
 
 //-- begin features
 
@@ -51,6 +70,15 @@
 // serial remote api
 #define RAPI
 
+// add checksum to RAPI responses RAPI v2.0.0+
+#define RAPI_RESPONSE_CHK
+
+// RAPI over serial
+#define RAPI_SERIAL
+
+// RAPI over I2C - NOT TESTED - CURRENTLY BROKEN
+//#define RAPI_I2C
+
 // serial port command line
 // For the RTC version, only CLI or LCD can be defined at one time. 
 // There is a directive to take care of that if you forget.
@@ -59,9 +87,21 @@
 // enable watchdog timer
 #define WATCHDOG
 
+// auto detect ampacity by PP pin resistor
+//#define PP_AUTO_AMPACITY
+
+#ifdef PP_AUTO_AMPACITY
+#define PP_TABLE_IEC
+//#define PP_TABLE_TESLA
+
+#include "AutoCurrentCapacityController.h"
+#endif
+
 // charge for a specified amount of time and then stop
 #define TIME_LIMIT
 
+// support Mennekes (IEC 62196) type 2 locking pin
+//#define MENNEKES_LOCK
 
 // Support for Nick Sayer's OpenEVSE II board, which has alternate hardware for ground check/stuck relay check and a voltmeter for L1/L2.
 //#define OPENEVSE_2
@@ -269,10 +309,11 @@
 
 #define LCD_MAX_CHARS_PER_LINE 16
 
+
 #ifdef SERIALCLI
 #define TMP_BUF_SIZE 64
 #else
-#define TMP_BUF_SIZE (LCD_MAX_CHARS_PER_LINE*2)
+#define TMP_BUF_SIZE ((LCD_MAX_CHARS_PER_LINE+1)*2)
 #endif // SERIALCLI
 
 
@@ -285,18 +326,25 @@
 #define DEFAULT_CURRENT_CAPACITY_L2 16
 
 // minimum allowable current in amps
-#define MIN_CURRENT_CAPACITY_L1 6
+#define MIN_CURRENT_CAPACITY_J1772 6 // J1772 min = 6
+// values below are just for menu
+#define MIN_CURRENT_CAPACITY_L1 MIN_CURRENT_CAPACITY_J1772
 #define MIN_CURRENT_CAPACITY_L2 10
 
 // maximum allowable current in amps
-#define MAX_CURRENT_CAPACITY_L1 16 // J1772 Max for L1 on a 20A circuit
-#define MAX_CURRENT_CAPACITY_L2 80 // J1772 Max for L2
+#define MAX_CURRENT_CAPACITY_L1 16 // J1772 Max for L1 on a 20A circuit = 16, 15A circuit = 12
+#define MAX_CURRENT_CAPACITY_L2 80 // J1772 Max for L2 = 80
 
 //J1772EVSEController
 #define CURRENT_PIN 0 // analog current reading pin ADCx
-#define VOLT_PIN 1 // analog pilot voltage reading pin ADCx
+#define PILOT_PIN 1 // analog pilot voltage reading pin ADCx
+#define PP_PIN 2 // PP_READ - ADC2
+#ifdef VOLTMETER
+// N.B. Note, ADC2 is already used as PP_PIN so beware of potential clashes
+// voltmeter pin is ADC2 on OPENEVSE_2
+#define VOLTMETER_PIN 2 // analog AC Line voltage voltmeter pin ADCx
+#endif // VOLTMETER
 #ifdef OPENEVSE_2
-#define VOLTMETER_PIN 2 // analog AC Line voltage voltemeter pin ADCx
 // This pin must match the last write to CHARGING_PIN, modulo a delay. If
 // it is low when CHARGING_PIN is high, that's a missing ground.
 // If it's high when CHARGING_PIN is low, that's a stuck relay.
@@ -307,6 +355,7 @@
 #define CHARGING_REG &PIND // OpenEVSE II has just one relay pin.
 #define CHARGING_IDX 7 // OpenEVSE II has just one relay pin.
 #else // !OPENEVSE_2
+
  // TEST PIN 1 for L1/L2, ground and stuck relay
 #define ACLINE1_REG &PIND
 #define ACLINE1_IDX 3
@@ -336,6 +385,23 @@
 // if using fast PWM (PAFC_PWM disabled) pilot pin *MUST* be PB2
 #define PILOT_REG &PINB
 #define PILOT_IDX 2
+
+#ifdef MENNEKES_LOCK
+// requires external 12V H-bridge driver such as Polulu 1451
+#define MENNEKES_LOCK_STATE EVSE_STATE_B // lock in State B
+//#define MENNEKES_LOCK_STATE EVSE_STATE_C // lock in State C
+
+//D11 - MOSI
+#define MENNEKES_LOCK_PINA_REG &PINB
+#define MENNEKES_LOCK_PINA_IDX 3
+
+//D12 - MISO
+#define MENNEKES_LOCK_PINB_REG &PINB
+#define MENNEKES_LOCK_PINB_IDX 4
+#include "MennekesLock.h"
+#endif // MENNEKES_LOCK
+
+
 
 
 #define SERIAL_BAUD 115200
@@ -367,6 +433,15 @@
 #define EOFS_THRESH_AMBIENT 26 // 2 bytes
 #define EOFS_THRESH_IR 28 // 2 bytes
 
+// for I2C RAPI
+#define EOFS_LOCAL_I2C_ADDR 30 // 1 byte
+//
+// for DUOSHARE
+//
+// for shared power pool
+#define EOFS_GROUP_CURRENT_CAPACITY 31 // 1 byte
+// non-volatile flags
+#define EOFS_DUO_NVFLAGS 32 // 1 byte
 
 // must stay within thresh for this time in ms before switching states
 #define DELAY_STATE_TRANSITION 250
@@ -495,9 +570,14 @@
 #endif
 
 #ifdef KWH_RECORDING
+#ifdef NZ
+#define VOLTS_FOR_L1 230   // for NZ
+#define VOLTS_FOR_L2 230   // for NZ
+#else //!NZ
 #define VOLTS_FOR_L1 120       // conventional for North America
 //  #define VOLTS_FOR_L2 230   // conventional for most of the world
 #define VOLTS_FOR_L2 240       // conventional for North America
+#endif // NZ
 #endif // KWH_RECORDING
 
 // The maximum number of milliseconds to sample an ammeter pin in order to find three zero-crossings.
@@ -512,7 +592,7 @@
 #ifdef TEMPERATURE_MONITORING
 
 #define MCP9808_IS_ON_I2C    // Use the MCP9808 connected to I2C          
-#define TMP007_IS_ON_I2C     // Use the TMP007 IR sensor on I2C 
+//#define TMP007_IS_ON_I2C     // Use the TMP007 IR sensor on I2C 
 #define TEMPERATURE_DISPLAY_ALWAYS 0     // Set this flag to 1 to always show temperatures on the bottom line of the 16X2 LCD
                                          // Set to it 0 to only display when temperatures become elevated 
 // #define TESTING_TEMPERATURE_OPERATION // Set this flag to play with very low sensor thresholds or to evaluate the code.
@@ -754,7 +834,7 @@ public:
 #endif // GFI
 
 #ifdef TEMPERATURE_MONITORING
-#include "./Adafruit_MCP9808.h"  //  adding the ambient temp sensor to I2C
+#include "./MCP9808.h"  //  adding the ambient temp sensor to I2C
 #include "./Adafruit_TMP007.h"   //  adding the TMP007 IR I2C sensor
 
 #define TEMPMONITOR_UPDATE_INTERVAL 1000ul
@@ -767,7 +847,7 @@ class TempMonitor {
   unsigned long m_LastUpdate;
 public:
 #ifdef MCP9808_IS_ON_I2C
-  Adafruit_MCP9808 m_tempSensor;
+  MCP9808 m_tempSensor;
 #endif  //MCP9808_IS_ON_I2C
 #ifdef TMP007_IS_ON_I2C
   Adafruit_TMP007 m_tmp007;
@@ -819,7 +899,12 @@ class Btn {
 #ifdef BTN_REG
   DigitalPin pinBtn;
 #endif
-  uint8_t buttonState;
+    uint8_t buttonState;
+    uint8_t prevBtns;
+    uint8_t selectPress;      // select has been pressed
+    uint8_t prevPress;        // prev has been pressed
+    uint8_t nextPress;        // next has been pressed
+    uint8_t autoOn;           // auto switch is on
   unsigned long lastDebounceTime;  // the last time the output pin was toggled
   unsigned long vlongDebounceTime;  // for verylong press
   
@@ -830,6 +915,11 @@ public:
   void read();
   uint8_t shortPress();
   uint8_t longPress();
+    // RHP added
+    uint8_t autoMode();         // autoMode switch is on
+    uint8_t selectPressed();    // check for select pressed and clear
+    uint8_t prevPressed();      // check for prev pressed and clear
+    uint8_t nextPressed();      // check for next pressed and clear
 };
 
 

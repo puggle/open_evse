@@ -2274,7 +2274,6 @@ void setup()
 void loop()
 {
   WDT_RESET();
-
   g_EvseController.Update();
 
   g_OBD.Update();
