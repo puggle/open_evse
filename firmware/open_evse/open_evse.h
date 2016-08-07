@@ -20,8 +20,17 @@
  * Boston, MA 02111-1307, USA.
  */
 #pragma once
-
 #define OPEN_EVSE
+
+// RHP branch version
+// for nz need to setup a few defaults differently like Vac 230   for both l1 and l2
+// **** Note open_evse.cpp I added to git - contains my changes
+// open_evse.ino is already in git but im not changing that so is sort of original copy
+#define NZ
+
+
+//RHP options
+//#define MULTI_BTNS      // multiple buttons for select, next, prev instead of just one.
 
 #include <avr/wdt.h>
 #include <avr/pgmspace.h>
@@ -558,9 +567,14 @@
 #endif
 
 #ifdef KWH_RECORDING
+#ifdef NZ
+#define VOLTS_FOR_L1 230   // for NZ
+#define VOLTS_FOR_L2 230   // for NZ
+#else //!NZ
 #define VOLTS_FOR_L1 120       // conventional for North America
 //  #define VOLTS_FOR_L2 230   // conventional for most of the world
 #define VOLTS_FOR_L2 240       // conventional for North America
+#endif // NZ
 #endif // KWH_RECORDING
 
 // The maximum number of milliseconds to sample an ammeter pin in order to find three zero-crossings.
@@ -882,7 +896,12 @@ class Btn {
 #ifdef BTN_REG
   DigitalPin pinBtn;
 #endif
-  uint8_t buttonState;
+    uint8_t buttonState;
+    uint8_t prevBtns;
+    uint8_t selectPress;      // select has been pressed
+    uint8_t prevPress;        // prev has been pressed
+    uint8_t nextPress;        // next has been pressed
+    uint8_t autoOn;           // auto switch is on
   unsigned long lastDebounceTime;  // the last time the output pin was toggled
   unsigned long vlongDebounceTime;  // for verylong press
   
@@ -893,6 +912,11 @@ public:
   void read();
   uint8_t shortPress();
   uint8_t longPress();
+    // RHP added
+    uint8_t autoMode();         // autoMode switch is on
+    uint8_t selectPressed();    // check for select pressed and clear
+    uint8_t prevPressed();      // check for prev pressed and clear
+    uint8_t nextPressed();      // check for next pressed and clear
 };
 
 
