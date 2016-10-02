@@ -24,7 +24,6 @@
 
 // a change to the stable branch made by RHP
 
-=======
 // RHP branch version
 // for nz need to setup a few defaults differently like Vac 230   for both l1 and l2
 // **** Note open_evse.cpp I added to git - contains my changes
@@ -50,14 +49,15 @@
 #include "WProgram.h" // shouldn't need this but arduino sometimes messes up and puts inside an #ifdef
 #endif // ARDUINO
 
-#define VERSION "D4.3.3"
+//#define VERSION "D4.3.3"
 
-#include "Language_default.h"   //Default language should always be included as bottom layer
+//#include "Language_default.h"   //Default language should always be included as bottom layer
 
 //Language preferences: Add your custom languagefile here. See Language_default.h for more info.
 //#include "Language_norwegian.h"
 
 //#define NOCHECKS
+#define VERSION "3.11.3"
 
 //-- begin features
 

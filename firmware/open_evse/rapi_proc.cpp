@@ -133,8 +133,12 @@ void EvseRapiProcessor::sendEvseState()
 
 void EvseRapiProcessor::setWifiMode(uint8_t mode)
 {
+<<<<<<< HEAD:firmware/open_evse/rapi_proc.cpp
   sprintf(g_sTmp,"%cWF %02x",ESRAPI_SOC,(int)mode);
   appendChk(g_sTmp);
+=======
+  sprintf(g_sTmp,"%cWF %02x%c",ESRAPI_SOC,(int)mode,ESRAPI_EOC);
+>>>>>>> 7d96ee397a908774231c2fdddc15d32dd3604e1e:rapi_proc.cpp
   writeStart();
   write(g_sTmp);
   writeEnd();
@@ -568,6 +572,7 @@ void EvseRapiProcessor::response(uint8_t ok)
 {
   writeStart();
 
+<<<<<<< HEAD:firmware/open_evse/rapi_proc.cpp
 #ifdef RAPI_RESPONSE_CHK
   sprintf(g_sTmp,"%c%s",ESRAPI_SOC,ok ? "OK" : "NK");
   if (bufCnt) {
@@ -577,6 +582,8 @@ void EvseRapiProcessor::response(uint8_t ok)
   appendChk(g_sTmp);
   write(g_sTmp);
 #else // !RAPI_RESPONSE_CHK
+=======
+>>>>>>> 7d96ee397a908774231c2fdddc15d32dd3604e1e:rapi_proc.cpp
   write(ESRAPI_SOC);
   write(ok ? "OK" : "NK");
 
@@ -593,6 +600,7 @@ void EvseRapiProcessor::response(uint8_t ok)
 
 EvseSerialRapiProcessor::EvseSerialRapiProcessor()
 {
+<<<<<<< HEAD:firmware/open_evse/rapi_proc.cpp
 }
 
 void EvseSerialRapiProcessor::init()
@@ -635,6 +643,50 @@ void RapiInit()
 #endif
 }
 
+=======
+}
+
+void EvseSerialRapiProcessor::init()
+{
+  EvseRapiProcessor::init();
+}
+
+
+#ifdef RAPI_I2C
+
+EvseI2cRapiProcessor::EvseI2cRapiProcessor()
+{
+}
+
+void EvseI2cRapiProcessor::init()
+{
+  Wire.begin(RAPI_I2C_LOCAL_ADDR);
+  Wire.onReceive(receiveEvent);   // define the receive function for receiving data from master
+
+  EvseRapiProcessor::init();
+}
+
+
+#endif // RAPI_I2C
+
+#ifdef RAPI_SERIAL
+EvseSerialRapiProcessor g_ESRP;
+#endif
+#ifdef RAPI_I2C
+EvseI2cRapiProcessor g_EIRP;
+#endif
+
+void RapiInit()
+{
+#ifdef RAPI_SERIAL
+  g_ESRP.init();
+#endif
+#ifdef RAPI_I2C
+  g_EIRP.init();
+#endif
+}
+
+>>>>>>> 7d96ee397a908774231c2fdddc15d32dd3604e1e:rapi_proc.cpp
 void RapiDoCmd()
 {
 #ifdef RAPI_SERIAL
