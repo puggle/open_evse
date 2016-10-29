@@ -2038,12 +2038,20 @@ void BtnHandler::ChkBtn()
       // force into setup menu when in fault
       if (infaultstate) goto longpress;
       else {
-	if ((g_EvseController.GetState() == EVSE_STATE_DISABLED) ||
+//RHP lets change short press to change from L1 to L2
+  if ((g_EvseController.GetState() == EVSE_STATE_DISABLED) ||
 	    (g_EvseController.GetState() == EVSE_STATE_SLEEPING)) {
 	  g_EvseController.Enable();
 	}
 	else {
-	  g_EvseController.Sleep();
+//	  g_EvseController.Sleep();
+      if (g_EvseController.GetCurSvcLevel()==1) {
+          g_EvseController.SetSvcLevel(2);
+      }else{
+          g_EvseController.SetSvcLevel(1);
+      }
+      g_OBD.SetAmmeterDirty(1); //RHP try and force display update to show we have changed svc level
+
 	}
       }
     }
@@ -2321,6 +2329,7 @@ void setup()
 #endif
 
   WDT_ENABLE();
+    
 
 #ifdef KWH_RECORDING
       if (eeprom_read_dword((uint32_t*)EOFS_KWH_ACCUMULATED) == 0xffffffff) { // Check for unitialized eeprom condition so it can begin at 0kWh
