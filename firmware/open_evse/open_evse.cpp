@@ -2050,7 +2050,9 @@ void BtnHandler::ChkBtn()
       }else{
           g_EvseController.SetSvcLevel(1);
       }
-      g_OBD.SetAmmeterDirty(1); //RHP try and force display update to show we have changed svc level
+      g_OBD.SetAmmeterDirty(1); //RHP try and force display update to show we have changed svc level - this didnt seem to help
+                                // actaully did help ammeter immediate update
+      g_OBD.Update(OBD_UPD_FORCE); //RHP added to try this to update display to show L1 L2 swap in ready mode_t
 
 	}
       }
